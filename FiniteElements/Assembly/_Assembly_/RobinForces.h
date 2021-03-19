@@ -483,16 +483,16 @@ void StaticSpringAssembler(const UInteger *faces,
    // LOOP OVER FACES
    for (Integer face=0; face<nface; ++face) {
       if (spring_flags[face]) {
-         // APPLIED ROBIN (SPRING) BY INCREMENT AND FACE
-         Real spring = applied_spring[face];
-         // GET FIELD AT ELEMENT LEVEL (JUST CURRENT)
-         for (Integer i=0; i<nodeperface; ++i) {
+        // APPLIED ROBIN (SPRING) BY INCREMENT AND FACE
+        Real spring = applied_spring[face];
+        // GET DISPLACEMENT FIELD AT ELEMENT LEVEL (JUST CURRENT) u=x-X
+        for (Integer i=0; i<nodeperface; ++i) {
             Integer inode = faces[face*nodeperface+i];
             for (Integer j=0; j<nvar; ++j) {
                ElemDisplacements[i*nvar+j] = Eulerx[inode*nvar+j] - LagrangeX[inode*nvar+j];
             }
-         }
-         // COMPUTE STIFFNESS AND FORCE
+        }
+        // COMPUTE STIFFNESS AND FORCE
 	     std::fill(force,force+ndof,0.0);
 	     std::fill(stiff_face,stiff_face+local_capacity,0.0);
 	     GetFacesSpringForces( stiff_face,
@@ -505,8 +505,8 @@ void StaticSpringAssembler(const UInteger *faces,
 			 ngauss,
 			 nvar);
 
-         // ASSEMBLE CONSTITUTIVE STIFFNESS
-         fill_global_data(
+        // ASSEMBLE CONSTITUTIVE STIFFNESS
+        fill_global_data(
                 nullptr,
                 nullptr,
                 stiff_face,
@@ -526,9 +526,9 @@ void StaticSpringAssembler(const UInteger *faces,
                 sorted_elements,
                 sorter);
 
-         // ASSEMBLE FORCES
-         // F[faces[face,:]*nvar+ivar,0]+=force[ivar::nvar,0]
-         for (Integer i=0; i<nodeperface; ++i) {
+        // ASSEMBLE FORCES
+        // F[faces[face,:]*nvar+ivar,0]+=force[ivar::nvar,0]
+        for (Integer i=0; i<nodeperface; ++i) {
 	        Integer inode = faces[face*nodeperface+i]*nvar;
 	        for (Integer j=0; j<nvar; ++j) {
 	           F[inode+j] += force[i*nvar+j];
