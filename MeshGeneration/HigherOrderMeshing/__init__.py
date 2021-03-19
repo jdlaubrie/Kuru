@@ -1,0 +1,5 @@
+#from .HigherOrderMeshingLine import HighOrderMeshLine
+#from .HigherOrderMeshingTri import HighOrderMeshTri_SEMISTABLE
+#from .HigherOrderMeshingTet import HighOrderMeshTet_SEMISTABLE
+from .HigherOrderMeshingQuad import HighOrderMeshQuad
+from .HigherOrderMeshingHex import HighOrderMeshHex

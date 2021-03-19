@@ -1,0 +1,21 @@
+# Python bytecodes
+*.pyc
+*.pyo
+
+# backup files
+*~
+
+# hidden files
+.*
+!.gitignore
+
+# object files
+*.o
+
+# shared libraries
+*.so
+
+# C files from cython
+*.cpp
+!_Numeric.cpp
+!_LinAlg.cpp
