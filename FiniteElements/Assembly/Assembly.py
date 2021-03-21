@@ -247,6 +247,10 @@ def AssembleRobinForces(boundary_condition, mesh, material, function_spaces, fem
         if boundary_condition.spring_flags.shape[0] == mesh.points.shape[0]:
             #boundary_condition.robin_data_applied_at = "node"
             raise ValueError("Robin boundary forces (spring) applied at nodes")
+    elif type_load == 'springjoint':
+        if boundary_condition.springjoint_master_flags.shape[0] == mesh.points.shape[0]:
+            #boundary_condition.robin_data_applied_at = "node"
+            raise ValueError("Robin boundary forces (springjoint) applied at nodes")
     else:
         raise ValueError("Load {} not unserstood. Just spring or pressure.".format(type_load))
 
@@ -282,7 +286,7 @@ def AssembleRobinForces(boundary_condition, mesh, material, function_spaces, fem
                     shape=((nvar*mesh.points.shape[0],nvar*mesh.points.shape[0])),dtype=np.float64).tocsr()
             else:
                 V_robin, F_robin = StaticPressureForces(boundary_condition, mesh,
-                    material, function_spaces[-1], fem_solver, Eulerx, type_load)
+                    material, function_spaces[-1], fem_solver, Eulerx)
                 K_robin = csr_matrix((V_robin,fem_solver.indices,fem_solver.indptr),
                     shape=((nvar*mesh.points.shape[0],nvar*mesh.points.shape[0])))
 
@@ -301,7 +305,7 @@ def AssembleRobinForces(boundary_condition, mesh, material, function_spaces, fem
                     shape=((nvar*mesh.points.shape[0],nvar*mesh.points.shape[0])),dtype=np.float64).tocsr()
             else:
                 V_robin, F_robin = StaticSpringForces(boundary_condition, mesh,
-                    material, function_spaces[-1], fem_solver, Eulerx, type_load)
+                    material, function_spaces[-1], fem_solver, Eulerx)
                 K_robin = csr_matrix((V_robin,fem_solver.indices,fem_solver.indptr),
                     shape=((nvar*mesh.points.shape[0],nvar*mesh.points.shape[0])))
 

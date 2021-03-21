@@ -19,6 +19,7 @@ compilar:
 - ./Tensor --> make
 - ./FunctionSpace/OneDimensional/_OneD --> make
 - ./FiniteElements/Assembly/_Assembly_ --> make cython_assembler_build
+- ./FiniteElements/Assembly/_Assembly_ --> make robin_build
 - ./FiniteElements/LocalAssembly/_KinematicsMeasures_ --> make
 - ./VariationalPrinciple/_GeometricStiffness_ --> make
 - ./VariationalPrinciple/_VolumetricStiffness_ --> make

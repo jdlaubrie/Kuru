@@ -40,6 +40,8 @@ cdef extern from "RobinForces.h" nogil:
                                const Real *AllGauss,
                                const int *spring_flags,
                                const Real *applied_spring,
+                               const Integer *joint_spring,
+                               int has_joint,
                                int recompute_sparsity_pattern,
                                int squeeze_sparsity_pattern,
                                const int *data_global_indices,
@@ -52,6 +54,7 @@ cdef extern from "RobinForces.h" nogil:
                                Real *F,
                                Integer nface,
                                Integer nodeperface,
+                               Integer njoint,
                                Integer ngauss,
                                Integer local_size,
                                Integer nvar)
@@ -196,6 +199,13 @@ def StaticSpringForces(boundary_condition, mesh, material, function_space, fem_s
 
     cdef np.ndarray[int,ndim=1, mode='c'] spring_flags    = boundary_condition.spring_flags.astype(np.int32)
     cdef np.ndarray[Real,ndim=1, mode='c'] applied_spring = boundary_condition.applied_spring
+    cdef np.ndarray[Integer,ndim=2, mode='c'] joint_spring    = np.zeros((1,1),np.int64)
+    cdef int has_joint  = 0
+    cdef Integer njoint = 0
+    if boundary_condition.joint_spring is not None:
+        joint_spring = boundary_condition.joint_spring
+        has_joint = 1
+        njoint = boundary_condition.joint_spring.shape[0]
 
     if fem_solver.recompute_sparsity_pattern:
         # ALLOCATE VECTORS FOR SPARSE ASSEMBLY OF STIFFNESS MATRIX - CHANGE TYPES TO INT64 FOR DoF > 1e09
@@ -219,6 +229,8 @@ def StaticSpringForces(boundary_condition, mesh, material, function_space, fem_s
                             &AllGauss[0],
                             &spring_flags[0],
                             &applied_spring[0],
+                            &joint_spring[0,0],
+                            has_joint,
                             recompute_sparsity_pattern,
                             squeeze_sparsity_pattern,
                             &data_global_indices[0],
@@ -231,6 +243,7 @@ def StaticSpringForces(boundary_condition, mesh, material, function_space, fem_s
                             &F[0],
                             nface,
                             nodeperface,
+                            njoint,
                             ngauss,
                             local_size,
                             nvar)

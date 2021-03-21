@@ -79,6 +79,7 @@ class BoundaryCondition(object):
         self.pressure_increment = 1.0
         self.spring_flags = None
         self.applied_spring = None
+        self.joint_spring = None
         self.is_body_force_shape_functions_computed = False
 
         self.make_loading = make_loading # "ramp" or "constant"
@@ -139,22 +140,22 @@ class BoundaryCondition(object):
         """Applies user defined Robin data to self, just working on surfaces
         """
 
-        tups = func(*args, **kwargs)
+        dics = func(*args, **kwargs)
 
-        if isinstance(tups,dict):
-            self.RobinLoadSelector(tups)
-        elif isinstance(tups,tuple):
-            for itup in range(len(tups)):
-                if isinstance(tups[itup],dict):
-                    self.RobinLoadSelector(tups[itup])
+        if isinstance(dics,dict):
+            self.RobinLoadSelector(dics)
+        elif isinstance(dics,tuple):
+            for idic in range(len(dics)):
+                if isinstance(dics[idic],dict):
+                    self.RobinLoadSelector(dics[idic])
                 else:
                     raise ValueError("User-defined Robin criterion function {} "
-                        "should return dict or tuple(dict,dict,...)".format(func.__name__))
+                        "should return dictionary or tuple(dict,dict,...)".format(func.__name__))
         else:
             raise ValueError("User-defined Robin criterion function {} "
-                "should return dict or tuple".format(func.__name__))
+                "should return dictionary or tuple".format(func.__name__))
 
-        return tups
+        return dics
 
     def RobinLoadSelector(self, tups):
         if tups['type'] == 'Pressure':
@@ -163,11 +164,14 @@ class BoundaryCondition(object):
         elif tups['type'] == 'Spring':
             self.spring_flags = tups['flags']
             self.applied_spring = tups['data']
+            if tups.has_key('joint'):
+                self.joint_spring = tups['joint']
         elif tups['type'] == 'Dashpot':
             raise ValueError("Surrounding viscoelastic effects not implemented yet")
         else:
             raise ValueError("Type force {} not understood or not available. "
-                "Types are Pressure, Spring and Dashpot.".format(tups['type']))
+                "Types are Pressure, Spring, SpringJoint and Dashpot.".format(tups['type']))
+
 
     def GetDirichletBoundaryConditions(self, formulation, mesh, materials=None, solver=None, fem_solver=None):
 
