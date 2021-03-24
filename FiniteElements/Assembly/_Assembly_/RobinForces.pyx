@@ -59,6 +59,28 @@ cdef extern from "RobinForces.h" nogil:
                                Integer local_size,
                                Integer nvar)
 
+    void StaticConnectorAssembler(const UInteger *elements,
+                               const Real *LagrangeX,
+                               const Real *Eulerx,
+                               const Real *Bases,
+                               const Real *AllGauss,
+                               const Real *applied_connector,
+                               int recompute_sparsity_pattern,
+                               int squeeze_sparsity_pattern,
+                               const int *data_global_indices,
+                               const int *data_local_indices,
+                               const UInteger *sorted_elements,
+                               const Integer *sorter,
+                               int *I_robin,
+                               int *J_robin,
+                               Real *V_robin,
+                               Real *F,
+                               Integer nelem,
+                               Integer nodeperface,
+                               Integer ngauss,
+                               Integer local_size,
+                               Integer nvar)
+
 def StaticPressureForces(boundary_condition, mesh, material, function_space, fem_solver, Real[:,::1] Eulerx):
     """
     This routine assembles the stiffness matrix and forces vector from pressure over the material
@@ -252,4 +274,90 @@ def StaticSpringForces(boundary_condition, mesh, material, function_space, fem_s
         return I_spring, J_spring, V_spring, F
     else:
         return V_spring, F
+
+
+def StaticConnectorForces(boundary_condition, mesh, material, function_space, fem_solver, Real[:,::1] Eulerx):
+    """
+    This routine assembles the stiffness matrix and forces vector from pressure over the material
+    so the number of variables is same than the number of dimensions of deformation.
+    nvar = ndim
+    """
+
+    # GET VARIABLES FOR DISPATCHING TO C
+    cdef Integer ndim    = material.ndim
+    cdef Integer nvar    = material.ndim
+
+    cdef Integer nodeperface                         = 0
+    if ndim == 2:
+        nodeperface = mesh.edges.shape[1]
+    else:
+        nodeperface = mesh.faces.shape[1]
+    cdef Integer nodeperelem                         = 2*nodeperface
+
+    cdef np.ndarray[Real,ndim=2, mode='c'] Bases         = function_space.Bases
+    cdef np.ndarray[Real,ndim=1, mode='c'] AllGauss      = function_space.AllGauss.flatten()
+    cdef Integer ngauss                                  = function_space.AllGauss.shape[0]
+    cdef Integer local_size                              = function_space.Bases.shape[0]*nvar
+
+    cdef int squeeze_sparsity_pattern       = fem_solver.squeeze_sparsity_pattern
+    cdef int recompute_sparsity_pattern     = fem_solver.recompute_sparsity_pattern
+
+    cdef np.ndarray[int,ndim=1,mode='c'] data_global_indices   = np.zeros(1,np.int32)
+    cdef np.ndarray[int,ndim=1,mode='c'] data_local_indices    = np.zeros(1,np.int32)
+    cdef np.ndarray[Integer,ndim=2, mode='c'] sorter           = np.zeros((1,1),np.int64)
+    cdef np.ndarray[UInteger,ndim=2, mode='c'] sorted_elements = np.zeros((1,1),np.uint64)
+
+    cdef np.ndarray[Real,ndim=1, mode='c'] F = np.zeros(mesh.points.shape[0]*nvar,np.float64)
+
+    cdef np.ndarray[int,ndim=1,mode='c'] I_connector    = np.zeros(1,np.int32)
+    cdef np.ndarray[int,ndim=1,mode='c'] J_connector    = np.zeros(1,np.int32)
+    cdef np.ndarray[Real,ndim=1,mode='c'] V_connector   = np.zeros(1,np.float64)
+
+    cdef np.ndarray[Real,ndim=2, mode='c'] LagrangeX = mesh.points
+
+    cdef np.ndarray[Real,ndim=1, mode='c'] applied_connector = boundary_condition.applied_connector
+    cdef np.ndarray[UInteger,ndim=2, mode='c'] elements      = boundary_condition.connector_elements
+    cdef Integer nelem                                       = boundary_condition.connector_elements.shape[0]
+
+    if fem_solver.recompute_sparsity_pattern:
+        # ALLOCATE VECTORS FOR SPARSE ASSEMBLY OF STIFFNESS MATRIX - CHANGE TYPES TO INT64 FOR DoF > 1e09
+        I_connector = np.zeros(int((nvar*nodeperelem)**2*nelem),np.int32)
+        J_connector = np.zeros(int((nvar*nodeperelem)**2*nelem),np.int32)
+        V_connector = np.zeros(int((nvar*nodeperelem)**2*nelem),np.float64)
+    else:
+        I_connector = fem_solver.indices
+        J_connector = fem_solver.indptr
+        V_connector = np.zeros(fem_solver.indices.shape[0],dtype=np.float64)
+        data_global_indices = fem_solver.data_global_indices
+        data_local_indices = fem_solver.data_local_indices
+        if fem_solver.squeeze_sparsity_pattern:
+            sorter = mesh.element_sorter
+            sorted_elements = mesh.sorted_elements
+
+    StaticConnectorAssembler(&elements[0,0],
+                          &LagrangeX[0,0],
+                          &Eulerx[0,0],
+                          &Bases[0,0],
+                          &AllGauss[0],
+                          &applied_connector[0],
+                          recompute_sparsity_pattern,
+                          squeeze_sparsity_pattern,
+                          &data_global_indices[0],
+                          &data_local_indices[0],
+                          &sorted_elements[0,0],
+                          &sorter[0,0],
+                          &I_connector[0],
+                          &J_connector[0],
+                          &V_connector[0],
+                          &F[0],
+                          nelem,
+                          nodeperface,
+                          ngauss,
+                          local_size,
+                          nvar)
+
+    if fem_solver.recompute_sparsity_pattern:
+        return I_connector, J_connector, V_connector, F
+    else:
+        return V_connector, F
 

@@ -247,10 +247,13 @@ def AssembleRobinForces(boundary_condition, mesh, material, function_spaces, fem
         if boundary_condition.spring_flags.shape[0] == mesh.points.shape[0]:
             #boundary_condition.robin_data_applied_at = "node"
             raise ValueError("Robin boundary forces (spring) applied at nodes")
-    elif type_load == 'springjoint':
-        if boundary_condition.springjoint_master_flags.shape[0] == mesh.points.shape[0]:
-            #boundary_condition.robin_data_applied_at = "node"
-            raise ValueError("Robin boundary forces (springjoint) applied at nodes")
+    elif type_load == 'connector':
+        if ndim == 2:
+            if boundary_condition.connector_elements.shape[1] != 2*mesh.edges.shape[1]:
+                raise ValueError("Robin boundary connector should be compose by two boundary elements")
+        else:
+            if boundary_condition.connector_elements.shape[1] != 2*mesh.faces.shape[1]:
+                raise ValueError("Robin boundary connector should be compose by two boundary elements")
     else:
         raise ValueError("Load {} not unserstood. Just spring or pressure.".format(type_load))
 
@@ -314,6 +317,24 @@ def AssembleRobinForces(boundary_condition, mesh, material, function_spaces, fem
 
         return K_robin, F_robin
 
+    if type_load == 'connector':
+        from .RobinForces import StaticConnectorForces
+        if boundary_condition.analysis_type == "static":
+            if fem_solver.recompute_sparsity_pattern:
+                I_robin, J_robin, V_robin, F_robin = StaticConnectorForces(boundary_condition,
+                    mesh, material, function_spaces[-1], fem_solver, Eulerx)
+                K_robin = coo_matrix((V_robin,(I_robin,J_robin)),
+                    shape=((nvar*mesh.points.shape[0],nvar*mesh.points.shape[0])),dtype=np.float64).tocsr()
+            else:
+                V_robin, F_robin = StaticConnectorForces(boundary_condition, mesh,
+                    material, function_spaces[-1], fem_solver, Eulerx)
+                K_robin = csr_matrix((V_robin,fem_solver.indices,fem_solver.indptr),
+                    shape=((nvar*mesh.points.shape[0],nvar*mesh.points.shape[0])))
+
+        elif boundary_condition.analysis_type == "dynamic":
+            raise ValueError("Not implemented yet")
+
+        return K_robin, F_robin
 
 #------------------------------- ASSEMBLY ROUTINE FOR EXTERNAL TRACTION FORCES ----------------------------------#
 

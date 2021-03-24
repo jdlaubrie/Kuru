@@ -79,7 +79,8 @@ class BoundaryCondition(object):
         self.pressure_increment = 1.0
         self.spring_flags = None
         self.applied_spring = None
-        self.joint_spring = None
+        self.connector_elements = None
+        self.applied_connector = None
         self.is_body_force_shape_functions_computed = False
 
         self.make_loading = make_loading # "ramp" or "constant"
@@ -164,8 +165,9 @@ class BoundaryCondition(object):
         elif tups['type'] == 'Spring':
             self.spring_flags = tups['flags']
             self.applied_spring = tups['data']
-            if tups.has_key('joint'):
-                self.joint_spring = tups['joint']
+        elif tups['type'] == 'Connector':
+            self.connector_elements = tups['elements']
+            self.applied_connector = tups['data']
         elif tups['type'] == 'Dashpot':
             raise ValueError("Surrounding viscoelastic effects not implemented yet")
         else:
@@ -395,6 +397,11 @@ class BoundaryCondition(object):
                 materials[0], function_spaces, fem_solver, Eulerx, 'spring')
             stiffness += K_spring
             F += F_spring[:,None]
+        if not self.connector_elements is None:
+            K_connector, F_connector = AssembleRobinForces(self, mesh,
+                materials[0], function_spaces, fem_solver, Eulerx, 'connector')
+            stiffness += K_connector
+            F += F_connector[:,None]
 
         return stiffness, F
 

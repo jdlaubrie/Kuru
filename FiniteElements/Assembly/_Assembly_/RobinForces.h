@@ -490,30 +490,9 @@ void StaticSpringAssembler(const UInteger *faces,
          Real spring = applied_spring[face];
          for (Integer i=0; i<nodeperface; ++i) {
             Integer inode = faces[face*nodeperface+i];
-            if (has_joint) {
-               Integer ijoint=0;
-               Integer jjoint=0;
-               // where joint_spring is inode, gets position (row and col)
-               for (Integer m=0; m<njoint; ++m) {
-                  for (Integer n=0; n<2; ++n) {
-                     if (joint_spring[m*2+n]==inode) {
-                        ijoint = m;
-                        jjoint = (n==0) ? n+1 : n-1;
-                     }
-                  }
-               }
-               Integer jnode = joint_spring[ijoint*2+jjoint];
-               // get displacement field of element u = x_0-X_0 - (x_1-X_1)
-               for (Integer j=0; j<nvar; ++j) {
-                  ElemDisplacements[i*nvar+j] = Eulerx[inode*nvar+j] - LagrangeX[inode*nvar+j]
-                                              - Eulerx[jnode*nvar+j] + LagrangeX[jnode*nvar+j];
-               }
-            }
-            else {
-               // get displacement field of element u = x-X
-               for (Integer j=0; j<nvar; ++j) {
-                  ElemDisplacements[i*nvar+j] = Eulerx[inode*nvar+j] - LagrangeX[inode*nvar+j];
-               }
+            // get displacement field of element u = x-X
+            for (Integer j=0; j<nvar; ++j) {
+               ElemDisplacements[i*nvar+j] = Eulerx[inode*nvar+j] - LagrangeX[inode*nvar+j];
             }
          }
          // COMPUTE STIFFNESS AND FORCE
@@ -562,6 +541,166 @@ void StaticSpringAssembler(const UInteger *faces,
    } //for faces loop
    free(force);
    free(stiff_face);
+   free(ElemDisplacements);
+} //end static spring assembler
+
+/*---------------------------------------------------------------------------------------------*/
+
+/* GetFacesForces works at element (face) level. This function produce the spring elastic reaction. */
+void GetElementConnectorForces(Real *stiff_elem,
+                Real *force,
+                const Real spring,
+                const Real *Bases,
+                const Real *AllGauss,
+                const Real *ElemDisplacements,
+                Integer nodeperface,
+                Integer ngauss,
+                Integer nvar)
+{
+   Integer ndof = nodeperface*nvar;
+   //Integer local_capacity = ndof*ndof;
+   
+   Real *N            = (Real*)malloc(2*ndof*nvar*ngauss*sizeof(Real));
+   Real *displacement = (Real*)malloc(ngauss*nvar*sizeof(Real));
+
+   std::fill(N,N+2*ndof*nvar*ngauss,0.0);
+   // Loop to fill function spaces for dimensons
+   // 0::3=>0,3,6,9 -- 1::3=>1,4,7,10 -- 2::3=>2,5,8,11
+   for (Integer i=0; i<nvar; ++i) {
+      for (Integer j=0; j<nodeperface; ++j) {
+         Integer idof = j*nvar + i;
+         for (Integer k=0; k<ngauss; ++k) {
+            N[idof*nvar*ngauss+i*ngauss+k] = Bases[j*ngauss+k];
+            N[(idof+ndof)*nvar*ngauss+i*ngauss+k] = -Bases[j*ngauss+k];
+         }
+      }
+   }
+   std::fill(displacement,displacement+ngauss*nvar,0.0);
+   // mapping displacement vector [\vec{u} (ngauss x ndim)]
+   //displacement = einsum("ij,ik->jk",Bases,ElemDisplacements)
+   for (Integer j=0; j<ngauss; ++j) {
+      for (Integer k=0; k<nvar; ++k) {
+         for (Integer i=0; i<nodeperface; ++i) {
+            displacement[j*nvar+k] += Bases[i*ngauss+j]*ElemDisplacements[i*nvar+k];
+         }
+      }
+   }
+   // Gauss quadrature of spring elastic load (traction)
+   //force = einsum("ijk,kj,k->ik",N,u,AllGauss[:,0]).sum(axis=1)
+   for (Integer i=0; i<2*ndof; ++i) {
+      for (Integer k=0; k<ngauss; ++k) {
+         for (Integer j=0; j<nvar; ++j) {
+            force[i] += spring*N[i*nvar*ngauss+j*ngauss+k]*displacement[k*nvar+j]*AllGauss[k];
+         }
+      }
+   }
+   //quadrature = einsum("kji,lji,i->kli",N,N,AllGauss[:,0]).sum(axis=2)
+   //spring*quadrature
+   for (Integer k=0; k<2*ndof; ++k) {
+      for (Integer l=0; l<2*ndof; ++l) {
+         for (Integer i=0; i<ngauss; ++i) {
+            for (Integer j=0; j<nvar; ++j) {
+               stiff_elem[k*2*ndof+l] += spring*N[k*nvar*ngauss+j*ngauss+i]*N[l*nvar*ngauss+j*ngauss+i]*AllGauss[i];
+            }
+         }
+      }
+   }
+   free(N);
+   free(displacement);
+}
+
+/* This function assembles the whole forces and stiffness due to
+   spring boundary conditions */
+
+void StaticConnectorAssembler(const UInteger *elements,
+                           const Real *LagrangeX,
+                           const Real *Eulerx,
+                           const Real *Bases,
+                           const Real *AllGauss,
+                           const Real *applied_connector,
+                           int recompute_sparsity_pattern,
+                           int squeeze_sparsity_pattern,
+                           const int *data_global_indices,
+                           const int *data_local_indices,
+                           const UInteger *sorted_elements,
+                           const Integer *sorter,
+                           int *I_connector,
+                           int *J_connector,
+                           Real *V_connector,
+                           Real *F,
+                           Integer nelem,
+                           Integer nodeperface,
+                           Integer ngauss,
+                           Integer local_size,
+                           Integer nvar)
+{
+   Integer nodeperelem = 2*nodeperface;
+   Integer ndof = nodeperface*nvar;
+   Integer local_capacity = 4*ndof*ndof;
+
+   Real *ElemDisplacements = (Real*)malloc(sizeof(Real)*ndof);
+
+   Real *force = (Real*)malloc(2*ndof*sizeof(Real));
+   Real *stiff_elem = (Real*)malloc(local_capacity*sizeof(Real));
+
+   // LOOP OVER FACES
+   for (Integer elem=0; elem<nelem; ++elem) {
+      // APPLIED ROBIN (SPRING) BY INCREMENT AND CONNECTOR_ELEMENT
+      Real spring = applied_connector[elem];
+      for (Integer i=0; i<nodeperface; ++i) {
+         Integer inode = elements[elem*nodeperelem+i];
+         Integer jnode = elements[elem*nodeperelem+nodeperface+i];
+         // get displacement field of element u = x_0-X_0 - (x_1-X_1)
+         for (Integer j=0; j<nvar; ++j) {
+            ElemDisplacements[i*nvar+j] = Eulerx[inode*nvar+j] - LagrangeX[inode*nvar+j]
+                                        - Eulerx[jnode*nvar+j] + LagrangeX[jnode*nvar+j];
+         }
+      }
+      // COMPUTE STIFFNESS AND FORCE
+      std::fill(force,force+2*ndof,0.0);
+      std::fill(stiff_elem,stiff_elem+local_capacity,0.0);
+      GetElementConnectorForces( stiff_elem,
+             force,
+             spring,
+             Bases,
+             AllGauss,
+             ElemDisplacements,
+             nodeperface,
+             ngauss,
+             nvar);
+
+      // ASSEMBLE CONSTITUTIVE STIFFNESS
+      fill_global_data(
+                nullptr,
+                nullptr,
+                stiff_elem,
+                I_connector,
+                J_connector,
+                V_connector,
+                elem,
+                nvar,
+                nodeperelem,
+                elements,
+                local_capacity,
+                local_capacity,
+                recompute_sparsity_pattern,
+                squeeze_sparsity_pattern,
+                data_local_indices,
+                data_global_indices,
+                sorted_elements,
+                sorter);
+
+      // ASSEMBLE FORCES
+      // F[faces[face,:]*nvar+ivar,0]+=force[ivar::nvar,0]
+      for (Integer i=0; i<nodeperelem; ++i) {
+         Integer inode = elements[elem*nodeperelem+i]*nvar;
+         for (Integer j=0; j<nvar; ++j) {
+            F[inode+j] += force[i*nvar+j];
+         }
+      }
+   } //for elements loop
+   free(force);
+   free(stiff_elem);
    free(ElemDisplacements);
 } //end static spring assembler
 
