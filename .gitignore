@@ -15,6 +15,9 @@
 # shared libraries
 *.so
 
+# postprocess files
+*.vtu
+
 # C files from cython
 *.cpp
 !_Numeric.cpp
