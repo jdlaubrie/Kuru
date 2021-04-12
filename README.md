@@ -17,12 +17,12 @@ Prerequisites:
 
 To compile the project:
 
-´´´
+```
 $ python setup.py build
-´´´
+```
 
 To clean sources and compilation files:
 
-´´´
+```
 $ python setup.py clean
-´´´
+```
