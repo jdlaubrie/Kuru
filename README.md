@@ -16,10 +16,13 @@ Prerequisites:
 
 
 To compile the project:
+
 ´´´
-$python setup.py build
+$ python setup.py build
 ´´´
+
 To clean sources and compilation files:
+
 ´´´
-$python setup.py clean
+$ python setup.py clean
 ´´´
