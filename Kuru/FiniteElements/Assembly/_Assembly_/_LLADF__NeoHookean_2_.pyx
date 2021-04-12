@@ -51,7 +51,7 @@ cdef extern from "_LLADF__NeoHookean_2_.h" nogil:
 
 def _LLADF__NeoHookean_2_(fem_solver, function_space, formulation, mesh, material, Real[:,::1] Eulerx):
 
-    # GET VARIABLES FOR DISPATCHING TO C
+    # GET VARIABLES FOR DISPATCHING TO C
     cdef Integer ndim                       = formulation.ndim
     cdef Integer nvar                       = formulation.nvar
     cdef Integer ngauss                     = function_space.AllGauss.shape[0]

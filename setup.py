@@ -81,23 +81,25 @@ class KuruSetup(object):
         # Get current working working directory
         self._pwd_ = os.path.dirname(os.path.realpath('__file__'))
         # Get python version and paths to header
-        self.GetPythonPath()
+        #self.GetPythonPath()
+        self.extension_postfix = "so"
         # Get numpy version and paths to header
-        self.GetNumPyPath()
+        #self.GetNumPyPath()
         # Get Fastor path
-        self.GetFastorPath(_fastor_path)
+        #self.GetFastorPath(_fastor_path)
         # Get BLAS version and paths
-        self.GetBLAS(_blas)
+        #self.GetBLAS(_blas)
         # Get kinematics version
-        self.GetKinematicsVersion(_kinematics_version)
+        #self.GetKinematicsVersion(_kinematics_version)
         # Set C/Fortran/C++ compiler
-        self.SetCompiler(_fc_compiler, _cc_compiler, _cxx_compiler, _additional_compiler_flags)
+        #self.SetCompiler(_fc_compiler, _cc_compiler, _cxx_compiler, _additional_compiler_flags)
         # Set up compiler arguments for all extension modules
-        self.SetCompilerArgs()
+        #self.SetCompilerArgs()
         # Collect all extension module paths
         self.CollectExtensionModulePaths()
         # Determine parallel builds
-        self.SetParallelism(_ncpu)
+        #self.SetParallelism(_ncpu)
+        self.parallel = False
 
 
     def GetPythonPath(self):
@@ -345,15 +347,16 @@ class KuruSetup(object):
 
         assert self.extension_paths != None
 
-        source_clean_cmd = 'make source_clean ' + self.compiler_args
+        source_clean_cmd = 'make source_clean '# + self.compiler_args
         for _path in self.extension_paths:
             if "_Assembly_" not in _path and "LLDispatch" not in _path:
                 execute('cd '+_path+' && '+source_clean_cmd)
             elif "LLDispatch" in _path:
                 execute('cd '+_path+' && echo rm -rf *.cpp CythonSource/*.cpp && rm -rf *.cpp CythonSource/*.cpp')
             elif "Assembly" in _path:
+                execute('cd '+_path+' && make cython_assembler_source_clean && make robin_source_clean')
                 execute('cd '+_path+' && echo rm -rf *.cpp && rm -rf *.cpp')
-                execute('cd '+_path+' && python AOT_Assembler.py clean')
+                #execute('cd '+_path+' && python AOT_Assembler.py clean')
 
     def Clean(self):
 
@@ -361,23 +364,16 @@ class KuruSetup(object):
 
         self.SourceClean()
         # You need to run both make clean and rm -rf as some modules relocate the shared libraries
-        clean_cmd = 'make clean ' + self.compiler_args
+        clean_cmd = 'make clean '# + self.compiler_args
         for _path in self.extension_paths:
-            if "LLDispatch" not in _path:
-                execute('cd '+_path+' && echo rm -rf *.'+self.extension_postfix+' && '+
-                    clean_cmd+' && rm -rf *.'+self.extension_postfix)
+            if "Assembly" not in _path and "LLDispatch" not in _path:
+                execute('cd '+_path+' && '+clean_cmd)
             elif "LLDispatch" in _path:
                 execute('cd '+_path+
-                    ' && echo rm -rf *.'+self.extension_postfix+' CythonSource/*.'+self.extension_postfix
-                    +' && rm -rf *.'+self.extension_postfix+' CythonSource/*.'+
-                    self.extension_postfix)
-            else:
-                execute('cd '+_path+' && echo rm -rf *.'+self.extension_postfix+' && rm -rf *.'+self.extension_postfix)
-
-        # # clean all crude and ext libs if any - this is dangerous if setup.py is ever invoked from outside the directory
-        # # which is certainly never the case
-        # execute("find . -name \*.so -delete")
-        # execute("find . -name \*.pyc -delete")
+                    ' && echo rm -rf *.'+self.extension_postfix+' && rm -rf *.'+self.extension_postfix)
+            elif "Assembly" in _path:
+                execute('cd '+_path+' && make cython_assembler_clean && make robin_clean')
+                execute('cd '+_path+' && echo rm -rf ../*.'+self.extension_postfix+' && rm -rf ../*.'+self.extension_postfix)
 
 
     def Build(self):
@@ -393,46 +389,28 @@ class KuruSetup(object):
         if self.parallel == False:
             for _path in self.extension_paths:
                 if "LLDispatch" not in _path and "_Assembly_" not in _path:
-                    execute('cd '+_path+' && make ' + self.compiler_args)
+                    execute('cd '+_path+' && make ')
                 if "LLDispatch" in _path:
                     _cmds = []
                     for material in low_level_material_list:
                         material = material.lstrip('_').rstrip('_')
-                        execute('cd '+_path+' && make ' + self.compiler_args + " MATERIAL=" + material)
+                        execute('cd '+_path+' && make ' + " MATERIAL=" + material)
 
                 elif "_Assembly_" in _path:
 
                     # Sparse and RHS assembler
-                    execute('cd '+_path+' && make cython_assembler_build ' + self.compiler_args)
-                    execute('cd '+_path+' && make robin_build ' + self.compiler_args)
+                    execute('cd '+_path+' && make cython_assembler_build ')
+                    execute('cd '+_path+' && make robin_build ')
 
-                    ll_material_mech = low_level_material_list[:6]
-                    ll_material_electro_mech = low_level_material_list[6:]
+                    ll_material_mech = low_level_material_list[:3]
 
-                    ll_material_mech.remove("_ExplicitMooneyRivlin_")
-                    ll_material_electro_mech.remove("_IsotropicElectroMechanics_109_")
-                    ll_material_electro_mech.remove("_ExplicitIsotropicElectroMechanics_108_")
-
-                    # ll_material_mech = []
-                    # ll_material_electro_mech = low_level_material_list
-                    # ll_material_mech = low_level_material_list
-                    # ll_material_electro_mech = []
-
-                    execute('cd '+_path+' && python AOT_Assembler.py clean')
-                    execute('cd '+_path+' && python AOT_Assembler.py configure')
+                    #execute('cd '+_path+' && python AOT_Assembler.py clean')
+                    #execute('cd '+_path+' && python AOT_Assembler.py configure')
 
                     for material in ll_material_mech:
-                        execute('cd '+_path+' && make ' + self.compiler_args + " ASSEMBLY_NAME=_LowLevelAssemblyDF_"  + material)
-                    for material in ll_material_electro_mech:
-                        execute('cd '+_path+' && make ' + self.compiler_args + " ASSEMBLY_NAME=_LowLevelAssemblyDPF_" + material)
+                        execute('cd '+_path+' && make '+"ASSEMBLY_NAME=_LLADF_"+material)
 
-                    execute('cd '+_path+' && python AOT_Assembler.py clean')
-
-                    # Explicit assembler
-                    execute('cd '+_path+' && make ' + self.compiler_args +" ASSEMBLY_NAME=_LowLevelAssemblyExplicit_DF_DPF_")
-
-                    # Perfect Laplacian assembler
-                    execute('cd '+_path+' && make ' + self.compiler_args +" ASSEMBLY_NAME=_LowLevelAssemblyPerfectLaplacian_ ")
+                    #execute('cd '+_path+' && python AOT_Assembler.py clean')
 
         else:
             # Parallel build
@@ -442,10 +420,9 @@ class KuruSetup(object):
             _cmds = []
             for _path in self.extension_paths:
                 if "LLDispatch" not in _path and "_Assembly_" not in _path:
-                    _cmds.append('cd '+_path+' && make ' + self.compiler_args)
+                    _cmds.append('cd '+_path+' && make ')
 
             pool.map(execute,_cmds)
-
 
             # LLDispatch modules
             _cmds = []
@@ -453,7 +430,7 @@ class KuruSetup(object):
                 if "LLDispatch" in _path:
                     for material in low_level_material_list:
                         material = material.lstrip('_').rstrip('_')
-                        _cmds.append('cd '+_path+' && make ' + self.compiler_args + " MATERIAL=" + material)
+                        _cmds.append('cd '+_path+' && make ' + "MATERIAL=" + material)
 
             pool.map(execute,_cmds)
 
@@ -463,41 +440,23 @@ class KuruSetup(object):
             for _path in self.extension_paths:
                 if "_Assembly_" in _path:
 
-                    ll_material_mech = low_level_material_list[:6]
-                    ll_material_electro_mech = low_level_material_list[6:]
+                    ll_material_mech = low_level_material_list[:3]
 
-                    ll_material_mech.remove("_ExplicitMooneyRivlin_")
-                    ll_material_electro_mech.remove("_IsotropicElectroMechanics_109_")
-                    ll_material_electro_mech.remove("_ExplicitIsotropicElectroMechanics_108_")
-
-                    # ll_material_mech = []
-                    # ll_material_electro_mech = low_level_material_list
-                    # ll_material_mech = low_level_material_list
-                    # ll_material_electro_mech = []
-
-                    execute('cd '+_path+' && python AOT_Assembler.py clean')
-                    execute('cd '+_path+' && python AOT_Assembler.py configure')
+                    #execute('cd '+_path+' && python AOT_Assembler.py clean')
+                    #execute('cd '+_path+' && python AOT_Assembler.py configure')
 
                     for material in ll_material_mech:
-                        _cmds.append('cd '+_path+' && make ' + self.compiler_args + " ASSEMBLY_NAME=_LowLevelAssemblyDF_"  + material)
-                    for material in ll_material_electro_mech:
-                        _cmds.append('cd '+_path+' && make ' + self.compiler_args + " ASSEMBLY_NAME=_LowLevelAssemblyDPF_" + material)
+                        _cmds.append('cd '+_path+' && make ' + " ASSEMBLY_NAME=_LLADF_"  + material)
 
             pool.map(execute,_cmds)
-            execute('cd '+_path+' && python AOT_Assembler.py clean')
-
+            #execute('cd '+_path+' && python AOT_Assembler.py clean')
 
             # Modules built sequentially
             for _path in self.extension_paths:
                 if "_Assembly_" in _path:
                     # Sparse and RHS assembler
-                    execute('cd '+_path+' && make cython_assembler_build ' + self.compiler_args)
-
-                    # Explicit assembler
-                    execute('cd '+_path+' && make ' + self.compiler_args +" ASSEMBLY_NAME=_LowLevelAssemblyExplicit_DF_DPF_")
-
-                    # Perfect Laplacian assembler
-                    execute('cd '+_path+' && make ' + self.compiler_args +" ASSEMBLY_NAME=_LowLevelAssemblyPerfectLaplacian_ ")
+                    execute('cd '+_path+' && make cython_assembler_build ')
+                    execute('cd '+_path+' && make robin_build ')
 
             pool.close()
 
@@ -509,12 +468,11 @@ class KuruSetup(object):
 
 
     def Install(self):
-        var = raw_input("This includes florence in your python path. Do you agree (y/n): ")
+        var = raw_input("This includes Kuru in your python path. Do you agree (y/n): ")
         if var=="n" or "no" in var:
             return
-        execute('export PYTHONPATH="$HOME/florence:$PYTHONPATH" >> ~/.profile && source ~/.profile')
+        execute('export PYTHONPATH="$HOME/Kuru:$PYTHONPATH" >> ~/.profile && source ~/.profile')
         execute('export PYTHONPATH="' + self._pwd_ + ':$PYTHONPATH" >> ~/.profile && source ~/.profile')
-
 
 
 def execute(_cmd):

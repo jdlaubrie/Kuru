@@ -79,7 +79,7 @@ build_module:
 	$(CXX) $(CXXSTD) $(CXXFLAGS) CythonSource/_$(MATERIAL)_.cpp -o _$(MATERIAL)_.$(EXT_POSTFIX) -I. -I$(PYTHON_INCLUDE_PATH) -I$(NUMPY_INCLUDE_PATH) -L$(PYTHON_LD_PATH) -l$(PYTHON_VERSION)
 
 clean:
-	$(REMOVE) CythonSource/_$(MATERIAL)_.cpp _$(MATERIAL)_.$(EXT_POSTFIX)
+	$(REMOVE) _$(MATERIAL)_.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) CythonSource/_$(MATERIAL)_.cpp

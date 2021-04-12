@@ -72,7 +72,7 @@ build_module:
 	@$(MOVE) _KinematicMeasures_.$(EXT_POSTFIX) ../_KinematicMeasures_.$(EXT_POSTFIX)
 
 clean:
-	$(REMOVE) _KinematicMeasures_.cpp _KinematicMeasures_.$(EXT_POSTFIX) ../_KinematicMeasures_.$(EXT_POSTFIX)
+	$(REMOVE) _KinematicMeasures_.$(EXT_POSTFIX) ../_KinematicMeasures_.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) _KinematicMeasures_.cpp

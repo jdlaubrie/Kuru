@@ -67,7 +67,7 @@ cdef extern from "_LLADF__ArterialWallMixture_.h" nogil:
 
 def _LLADF__ArterialWallMixture_(fem_solver, function_space, formulation, mesh, material, Real[:,::1] Eulerx):
 
-    # GET VARIABLES FOR DISPATCHING TO C
+    # GET VARIABLES FOR DISPATCHING TO C
     cdef Integer ndim                       = formulation.ndim
     cdef Integer nvar                       = formulation.nvar
     cdef Integer ngauss                     = function_space.AllGauss.shape[0]

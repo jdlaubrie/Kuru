@@ -52,7 +52,7 @@ build_module:
 	@$(MOVE) _GeometricStiffness_.$(EXT_POSTFIX) ../
 
 clean:
-	$(REMOVE) _GeometricStiffness_.c _GeometricStiffness_.$(EXT_POSTFIX) ../_GeometricStiffness_.$(EXT_POSTFIX)
+	$(REMOVE) _GeometricStiffness_.$(EXT_POSTFIX) ../_GeometricStiffness_.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) _GeometricStiffness_.c

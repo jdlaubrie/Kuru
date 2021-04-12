@@ -22,3 +22,7 @@
 *.cpp
 !_Numeric.cpp
 !_LinAlg.cpp
+
+# directories
+*build
+*Kuru.egg-info

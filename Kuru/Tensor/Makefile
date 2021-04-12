@@ -47,16 +47,16 @@ CXXFLAGS += $(ADDITIONAL_FLAGS)
 all: build_module
 
 build_module:
-	@echo "Building Florence supplementary tensor numeric module"
+	@echo "Building Kuru supplementary tensor numeric module"
 	$(CYTHON) Numeric.pyx
 	$(CXX) $(CXXSTD) $(CXXFLAGS) Numeric.cpp _Numeric.cpp -o Numeric.$(EXT_POSTFIX) -I. -I$(PYTHON_INCLUDE_PATH) -I$(NUMPY_INCLUDE_PATH) -L$(PYTHON_LD_PATH) -l$(PYTHON_VERSION)
 
-	@echo "Building Florence supplementary tensor linear algebra module"
+	@echo "Building Kuru supplementary tensor linear algebra module"
 	$(CYTHON) LinAlg.pyx
 	$(CXX) $(CXXSTD) $(CXXFLAGS) _Numeric.cpp _LinAlg.cpp LinAlg.cpp -o LinAlg.$(EXT_POSTFIX) -I. -I$(PYTHON_INCLUDE_PATH) -I$(NUMPY_INCLUDE_PATH) -L$(PYTHON_LD_PATH) -l$(PYTHON_VERSION)
 
 clean:
-	$(REMOVE) Numeric.cpp LinAlg.cpp Numeric.$(EXT_POSTFIX) LinAlg.$(EXT_POSTFIX)
+	$(REMOVE) Numeric.$(EXT_POSTFIX) LinAlg.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) Numeric.cpp LinAlg.cpp

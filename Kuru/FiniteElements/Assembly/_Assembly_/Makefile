@@ -82,7 +82,7 @@ CXXFLAGS += $(ADDITIONAL_FLAGS)
 all: build_module
 
 build_module:
-	@echo "Building florence FEM assembly module: " $(ASSEMBLY_NAME)
+	@echo "Building kuru FEM assembly module: " $(ASSEMBLY_NAME)
 	$(CYTHON) $(ASSEMBLY_NAME).pyx
 	$(CXX) $(CXXSTD) $(CXXFLAGS) $(ASSEMBLY_NAME).cpp -o $(ASSEMBLY_NAME).$(EXT_POSTFIX) -I. \
 	-I$(PYTHON_INCLUDE_PATH) -I$(NUMPY_INCLUDE_PATH) -L$(PYTHON_LD_PATH) -l$(PYTHON_VERSION) -I$(KIN_INC) -I../../../Tensor/ -I$(MAT_INC) \
@@ -90,12 +90,10 @@ build_module:
 	$(MOVE) $(ASSEMBLY_NAME).$(EXT_POSTFIX) ../
 
 clean:
-	$(REMOVE) $(ASSEMBLY_NAME).cpp $(ASSEMBLY_NAME).$(EXT_POSTFIX) ../$(ASSEMBLY_NAME).$(EXT_POSTFIX)
+	$(REMOVE) $(ASSEMBLY_NAME).$(EXT_POSTFIX) ../$(ASSEMBLY_NAME).$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) $(ASSEMBLY_NAME).cpp
-
-
 
 cython_assembler_build:
 	@echo "Building kuru FEM sparse assembler module"
@@ -117,15 +115,15 @@ cython_assembler_build:
 	$(MOVE) ComputeSparsityPattern.$(EXT_POSTFIX) ../
 
 cython_assembler_clean:
-	$(REMOVE) SparseAssemblyNative.cpp SparseAssemblyNative.$(EXT_POSTFIX) ../SparseAssemblyNative.$(EXT_POSTFIX)
-	$(REMOVE) RHSAssemblyNative.cpp RHSAssemblyNative.$(EXT_POSTFIX) ../RHSAssemblyNative.$(EXT_POSTFIX)
-	$(REMOVE) ComputeSparsityPattern.cpp ComputeSparsityPattern.$(EXT_POSTFIX) ../ComputeSparsityPattern.$(EXT_POSTFIX)
+	$(REMOVE) SparseAssemblyNative.$(EXT_POSTFIX) ../SparseAssemblyNative.$(EXT_POSTFIX)
+	$(REMOVE) RHSAssemblyNative.$(EXT_POSTFIX) ../RHSAssemblyNative.$(EXT_POSTFIX)
+	$(REMOVE) ComputeSparsityPattern.$(EXT_POSTFIX) ../ComputeSparsityPattern.$(EXT_POSTFIX)
 
 cython_assembler_source_clean:
 	$(REMOVE) SparseAssemblyNative.cpp
 	$(REMOVE) RHSAssemblyNative.cpp
 	$(REMOVE) ComputeSparsityPattern.cpp
-	
+
 robin_build:
 	@echo "Building kuru FEM Robin boundary forces assembler module"
 	$(CYTHON) RobinForces.pyx
@@ -134,7 +132,7 @@ robin_build:
 	$(MOVE) RobinForces.$(EXT_POSTFIX) ../
 
 robin_clean:
-	$(REMOVE) RobinForces.cpp RobinForces.$(EXT_POSTFIX) ../RobinForces.$(EXT_POSTFIX)
+	$(REMOVE) RobinForces.$(EXT_POSTFIX) ../RobinForces.$(EXT_POSTFIX)
 
 robin_source_clean:
 	$(REMOVE) RobinForces.cpp

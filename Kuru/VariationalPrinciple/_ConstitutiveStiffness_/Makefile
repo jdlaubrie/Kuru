@@ -77,8 +77,8 @@ build_module:
 	@$(MOVE) _ConstitutiveStiffnessDF_.$(EXT_POSTFIX) ../
 
 clean:
-	$(REMOVE) DisplacementApproachIndices.cpp DisplacementApproachIndices.$(EXT_POSTFIX) ../DisplacementApproachIndices.$(EXT_POSTFIX)
-	$(REMOVE) _ConstitutiveStiffnessDF_.cpp _ConstitutiveStiffnessDF_.$(EXT_POSTFIX) ../_ConstitutiveStiffnessDF_.$(EXT_POSTFIX)
+	$(REMOVE) DisplacementApproachIndices.$(EXT_POSTFIX) ../DisplacementApproachIndices.$(EXT_POSTFIX)
+	$(REMOVE) _ConstitutiveStiffnessDF_.$(EXT_POSTFIX) ../_ConstitutiveStiffnessDF_.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) DisplacementApproachIndices.cpp

@@ -53,7 +53,7 @@ build_module:
 	@$(MOVE) LineBP.$(EXT_POSTFIX) ../LineBP.$(EXT_POSTFIX)
 
 clean:
-	$(REMOVE) LineBP.cpp LineBP.$(EXT_POSTFIX) ../LineBP.$(EXT_POSTFIX)
+	$(REMOVE) LineBP.$(EXT_POSTFIX) ../LineBP.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) LineBP.cpp

@@ -66,7 +66,7 @@ build_module:
 	@$(MOVE) _VolumetricStiffness_.$(EXT_POSTFIX) ../
 
 clean:
-	$(REMOVE) _VolumetricStiffness_.cpp _VolumetricStiffness_.$(EXT_POSTFIX) ../_VolumetricStiffness_.$(EXT_POSTFIX)
+	$(REMOVE) _VolumetricStiffness_.$(EXT_POSTFIX) ../_VolumetricStiffness_.$(EXT_POSTFIX)
 
 source_clean:
 	$(REMOVE) _VolumetricStiffness_.cpp
