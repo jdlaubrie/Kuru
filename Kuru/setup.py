@@ -249,7 +249,7 @@ class KuruSetup(object):
     def SetCompiler(self, _fc_compiler=None, _cc_compiler=None, _cxx_compiler=None, _additional_compiler_flags=""):
 
         if not "darwin" in self._os and not "linux" in self._os and not "cygwin" in self._os:
-            raise RuntimeError("Florence is not yet tested on any other platform apart from Linux & macOS")
+            raise RuntimeError("Kuru is not yet tested on any other platform apart from Linux")
 
         self.fc_compiler = _fc_compiler
         self.cc_compiler = _cc_compiler
@@ -317,23 +317,21 @@ class KuruSetup(object):
 
     def CollectExtensionModulePaths(self):
         # All modules paths should be specified in the following list
-        _pwd_ = os.path.join(self._pwd_,"Florence")
+        _pwd_ = os.path.join(self._pwd_,"Kuru")
 
         tensor_path = os.path.join(_pwd_,"Tensor")
-        jacobi_path = os.path.join(_pwd_,"FunctionSpace","JacobiPolynomials")
+        #jacobi_path = os.path.join(_pwd_,"FunctionSpace","JacobiPolynomials")
         bp_path = os.path.join(_pwd_,"FunctionSpace","OneDimensional","_OneD")
         km_path = os.path.join(_pwd_,"FiniteElements","LocalAssembly","_KinematicMeasures_")
         gm_path = os.path.join(_pwd_,"VariationalPrinciple","_GeometricStiffness_")
+        vm_path = os.path.join(_pwd_,"VariationalPrinciple","_VolumetricStiffness_")
         cm_path = os.path.join(_pwd_,"VariationalPrinciple","_ConstitutiveStiffness_")
-        tm_path = os.path.join(_pwd_,"VariationalPrinciple","_Traction_")
-        mm_path = os.path.join(_pwd_,"VariationalPrinciple","_Mass_")
+        #tm_path = os.path.join(_pwd_,"VariationalPrinciple","_Traction_")
+        #mm_path = os.path.join(_pwd_,"VariationalPrinciple","_Mass_")
         material_path = os.path.join(_pwd_,"MaterialLibrary","LLDispatch")
         assemble_path = os.path.join(_pwd_,"FiniteElements","Assembly","_Assembly_")
 
-        self.extension_paths = [tensor_path,jacobi_path,bp_path,
-            km_path,gm_path,cm_path,tm_path,mm_path,material_path,assemble_path]
-        # self.extension_paths = [mm_path]
-        # self.extension_paths = [assemble_path]
+        self.extension_paths = [tensor_path,bp_path,km_path,gm_path,vm_path,cm_path,material_path,assemble_path]
 
     def SetParallelism(self,_ncpu=1):
         if _ncpu > 1:
@@ -385,30 +383,10 @@ class KuruSetup(object):
     def Build(self):
 
 
-        low_level_material_list = [ "_LinearElastic_",
-                                    "_NeoHookean_",
-                                    "_MooneyRivlin_",
-                                    "_NearlyIncompressibleMooneyRivlin_",
-                                    "_AnisotropicMooneyRivlin_1_",
-                                    "_ExplicitMooneyRivlin_",
-                                    "_IsotropicElectroMechanics_0_",
-                                    "_IsotropicElectroMechanics_3_",
-                                    "_SteinmannModel_",
-                                    "_IsotropicElectroMechanics_101_",
-                                    "_IsotropicElectroMechanics_105_",
-                                    "_IsotropicElectroMechanics_106_",
-                                    "_IsotropicElectroMechanics_107_",
-                                    "_IsotropicElectroMechanics_108_",
-                                    "_IsotropicElectroMechanics_109_",
-                                    "_Piezoelectric_100_",
-                                    "_ExplicitIsotropicElectroMechanics_108_",
+        low_level_material_list = [ "_NeoHookean_2_",
+                                    "_AnisotropicFungQuadratic_",
+                                    "_ArterialWallMixture_",
                                 ]
-
-        # low_level_material_list = ["_IsotropicElectroMechanics_109_"]
-        # low_level_material_list = ["_NeoHookean_"]
-        # low_level_material_list = ["_LinearElastic_"]
-        # low_level_material_list = ["_ExplicitMooneyRivlin_"]
-
 
         assert self.extension_paths != None
 
@@ -426,6 +404,7 @@ class KuruSetup(object):
 
                     # Sparse and RHS assembler
                     execute('cd '+_path+' && make cython_assembler_build ' + self.compiler_args)
+                    execute('cd '+_path+' && make robin_build ' + self.compiler_args)
 
                     ll_material_mech = low_level_material_list[:6]
                     ll_material_electro_mech = low_level_material_list[6:]
