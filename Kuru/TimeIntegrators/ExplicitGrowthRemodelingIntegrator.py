@@ -25,9 +25,9 @@ class ExplicitGrowthRemodelingIntegrator(GrowthRemodelingIntegrator):
         super(ExplicitGrowthRemodelingIntegrator, self).__init__(gain, turnover, **kwargs)
 
 
-    def Solver(self, function_spaces, formulation, solver,
-        K, NeumannForces, NodalForces, Residual,
-        mesh, TotalDisp, Eulerx, materials, boundary_condition, fem_solver):
+    def Solver(self, function_spaces, formulation, solver, K, NeumannForces,
+        NodalForces, Residual, mesh, TotalDisp, Eulerx, materials,
+        boundary_condition, fem_solver):
 
         if len(materials)>1 and self.density_turnover=="muscle":
             warn("More than one material. I will assume the first material is the Media")
@@ -67,6 +67,8 @@ class ExplicitGrowthRemodelingIntegrator(GrowthRemodelingIntegrator):
 
             # COMPUTE THE GROWTH AND REMODELING
             if TIncrement != 0:
+                if self.has_dissection:
+                    self.ComputeDissectionSpread(boundary_condition, mesh, IncrementalTime)
                 for imat in range(gr_materials.shape[0]):
                     Rates = self.RatesGrowthRemodeling(mesh, materials[gr_materials[imat]], FibreStress, Softness, imat)
                     GRVariables[imat][:,:,TIncrement] = self.ExplicitGrowthRemodeling(mesh, materials[gr_materials[imat]],
@@ -183,7 +185,7 @@ class ExplicitGrowthRemodelingIntegrator(GrowthRemodelingIntegrator):
         return TotalDisp, GRVariables
 
     def ExplicitGrowthRemodeling(self, mesh, material, IncrementalTime, Delta_t, Rates):
-        """ Routine to get the evolution of Growth and Remodeling parameters
+        """ Routine to get the evolution of Growth and Remodeling variables
         """
 
         # Elastin degradation
@@ -212,6 +214,9 @@ class ExplicitGrowthRemodelingIntegrator(GrowthRemodelingIntegrator):
             # just natural rate of elastin degradation
             elif self.aging_only:
                 material.state_variables[node,14] = material.den0_e[node]*np.exp(-IncrementalTime/T_ela)
+            # there is not degradation of elastin
+            elif self.not_degradation:
+                material.state_variables[node,14] = material.den0_e[node]
             else:
                 raise ValueError("Degradation type of elastin not undesrtood. Insert eather at point or at line.")
             # Time Integration of fibre densities
@@ -225,4 +230,26 @@ class ExplicitGrowthRemodelingIntegrator(GrowthRemodelingIntegrator):
                 material.state_variables[node,20] += material.state_variables[node,14+n]/den0_tot
 
         return material.state_variables[:,9:21]
+
+    def ComputeDissectionSpread(self, boundary_condition, mesh, IncrementalTime):
+        """ Routine to compute the spread of the dissection"""
+
+        # a ramp function for the dissection spread wich stop after a time threshold
+        dissection_speed = self.maximum_dissection_spread/self.dissection_time_threshold
+        if IncrementalTime < self.dissection_time_threshold:
+            dissection_spread = dissection_speed*IncrementalTime
+        else:
+            dissection_spread = self.maximum_dissection_spread
+
+        divider = boundary_condition.connector_elements.shape[1]
+        # Loop into the connector elements
+        for elem in range(boundary_condition.connector_elements.shape[0]):
+            center = np.sum(mesh.points[boundary_condition.connector_elements[elem,:],:],axis=0)/divider
+            if center[2] < dissection_spread:
+                boundary_condition.connector_flags[elem] = False
+                free_faces = boundary_condition.connector_faces[elem]
+                boundary_condition.pressure_flags[free_faces] = True
+                boundary_condition.applied_pressure[free_faces] = self.dissection_pressure
+
+        return
 

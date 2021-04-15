@@ -315,9 +315,9 @@ def StaticConnectorForces(boundary_condition, mesh, material, function_space, fe
 
     cdef np.ndarray[Real,ndim=2, mode='c'] LagrangeX = mesh.points
 
-    cdef np.ndarray[Real,ndim=1, mode='c'] applied_connector = boundary_condition.applied_connector
-    cdef np.ndarray[UInteger,ndim=2, mode='c'] elements      = boundary_condition.connector_elements
-    cdef Integer nelem                                       = boundary_condition.connector_elements.shape[0]
+    cdef np.ndarray[Real,ndim=1, mode='c'] applied_connector = boundary_condition.applied_connector[boundary_condition.connector_flags]
+    cdef np.ndarray[UInteger,ndim=2, mode='c'] elements      = boundary_condition.connector_elements[boundary_condition.connector_flags,:]
+    cdef Integer nelem                              = boundary_condition.connector_elements[boundary_condition.connector_flags,:].shape[0]
 
     if fem_solver.recompute_sparsity_pattern:
         # ALLOCATE VECTORS FOR SPARSE ASSEMBLY OF STIFFNESS MATRIX - CHANGE TYPES TO INT64 FOR DoF > 1e09

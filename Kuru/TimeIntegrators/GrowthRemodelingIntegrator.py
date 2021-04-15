@@ -23,9 +23,24 @@ class GrowthRemodelingIntegrator(object):
     """Base class for structural time integerators
     """
 
-    def __init__(self, gain, turnover, density_turnover="self", degradation_at_line=True,
-        degradation_at_point=False, degradation_point=None, aging_only=False, monitoring_node=0, 
-        damage_spread_space=0.010, damage_spread_time=40.0, damage_axis=0, **kwargs):
+    def __init__(self,
+        gain,
+        turnover,
+        density_turnover="self",
+        not_degradation=True,
+        degradation_at_line=False,
+        degradation_at_point=False,
+        degradation_point=None,
+        aging_only=False,
+        monitoring_node=0,
+        damage_spread_space=None,
+        damage_spread_time=None,
+        damage_axis=0,
+        has_dissection=False,
+        dissection_time_threshold = None,
+        maximum_dissection_spread = None,
+        dissection_pressure = None
+        ):
 
         self.HomeostaticStress = None
         self.gain = gain
@@ -36,11 +51,12 @@ class GrowthRemodelingIntegrator(object):
         self.degradation_at_point = degradation_at_point
         self.degradation_point = degradation_point
         self.aging_only = aging_only
+        self.not_degradation = not_degradation
 
         self.monitoring_node = monitoring_node
 
-        if degradation_at_point or aging_only:
-            self.degradation_at_line = False
+        if degradation_at_point or aging_only or degradation_at_line:
+            self.not_degradation = False
         if degradation_point is None and degradation_at_point:
             self.degradation_point = [0.,0.,0.]
 
@@ -48,6 +64,10 @@ class GrowthRemodelingIntegrator(object):
         self.damage_spread_time = damage_spread_time
         self.damage_axis = damage_axis
 
+        self.has_dissection = has_dissection
+        self.dissection_time_threshold = dissection_time_threshold
+        self.maximum_dissection_spread = maximum_dissection_spread
+        self.dissection_pressure = dissection_pressure
 
     def HomeostaticDistortion(self, fem_solver, formulation, TotalDisp, Increment):
         """ check the distortion of homeostasis"""
